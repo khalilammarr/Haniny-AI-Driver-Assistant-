@@ -1,7 +1,9 @@
-from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Header
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from typing import List
+from typing import List, Optional
+import os
+import secrets
 import json
 import base64
 import cv2
@@ -155,7 +157,15 @@ def get_stats(current_user: models.User = Depends(get_current_user), db: Session
 
 # --- Admin Endpoints ---
 
-@app.get("/admin/users", response_model=List[schemas.User])
+def require_admin(x_admin_token: Optional[str] = Header(default=None)):
+    """Admin routes need the X-Admin-Token header to match HANINY_ADMIN_TOKEN.
+    Without that variable the admin routes are disabled."""
+    expected = os.environ.get("HANINY_ADMIN_TOKEN")
+    if not expected or not x_admin_token or not secrets.compare_digest(x_admin_token, expected):
+        raise HTTPException(status_code=403, detail="Admin access denied")
+
+
+@app.get("/admin/users", response_model=List[schemas.User], dependencies=[Depends(require_admin)])
 def get_all_users(db: Session = Depends(get_db)):
     """
     Admin endpoint to list all registered users.
@@ -164,7 +174,7 @@ def get_all_users(db: Session = Depends(get_db)):
     users = db.query(models.User).all()
     return users
 
-@app.get("/admin/alerts")
+@app.get("/admin/alerts", dependencies=[Depends(require_admin)])
 def get_all_alerts(db: Session = Depends(get_db)):
     """
     Admin endpoint to list all alerts from all users.
@@ -489,8 +499,7 @@ def get_device_user(device_id: str, db: Session = Depends(get_db)):
         return {"paired": False, "user_name": None}
     return {
         "paired": True, 
-        "user_name": user.full_name, 
-        "email": user.email,
+        "user_name": user.full_name,
         "car_model": user.car_model
     }
 

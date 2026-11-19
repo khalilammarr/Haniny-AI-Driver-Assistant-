@@ -1,10 +1,17 @@
+import logging
+import os
+import secrets
+
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 
-# Secret key for JWT (in production, use environment variable)
-SECRET_KEY = "haniny_secret_key_change_this_in_production"
+# JWT signing key. Set HANINY_JWT_SECRET; without it a random key is generated at
+# startup, which is fine for a demo but logs everyone out on every restart.
+SECRET_KEY = os.environ.get("HANINY_JWT_SECRET") or secrets.token_urlsafe(32)
+if "HANINY_JWT_SECRET" not in os.environ:
+    logging.getLogger(__name__).warning("HANINY_JWT_SECRET is not set; using a random key for this run")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
