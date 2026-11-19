@@ -1,0 +1,9 @@
+flowchart TB
+    S["Phone in the car<br/>speed, G-force, 2 cameras"] -->|"WebSocket, base64 frames"| B["FastAPI backend"]
+    B --> D["Driver models<br/>MediaPipe, OpenCV"]
+    B --> R["Road models<br/>YOLOv8n, Haar cascade"]
+    D --> SC["Risk scoring"]
+    R --> SC
+    SC -->|"alerts, live score"| A["Flutter app"]
+    B --> DB[("SQLite<br/>users, trips, alerts")]
+    A -->|"crash detected"| SOS["SOS flow"]
